@@ -498,10 +498,10 @@ MIT License - See LICENSE file for details
 
 ## Related Projects
 
-- [egile-agent-core](../egile-agent-core) - Core agent framework
-- [egile-agent-prospectfinder](../egile-agent-prospectfinder) - ProspectFinder agent
-- [egile-agent-x-twitter](../egile-agent-x-twitter) - XTwitter agent
-- [agent-ui](../agent-ui) - Web interface for AgentOS
+- [egile-agent-core](https://github.com/jpoullet2000/egile-agent-core) - Core agent framework
+- [egile-agent-prospectfinder](https://github.com/jpoullet2000/egile-agent-prospectfinder) - ProspectFinder agent
+- [egile-agent-x-twitter](https://github.com/jpoullet2000/egile-agent-x-twitter) - XTwitter agent
+- [agent-ui](https://github.com/agno-agi/agent-uii) - Web interface for AgentOS
 - [Agno](https://github.com/agno-agi/agno) - Multi-agent framework
 
 ## Support
