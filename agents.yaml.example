@@ -1,0 +1,92 @@
+# Egile Agent Hub Configuration
+# ==============================
+# This file defines all agents and teams that will run in the unified AgentOS.
+# 
+# Configuration Structure:
+# - agents: List of individual agent definitions
+# - teams: (Optional) List of Agno Team definitions that group agents
+#
+# Agent Fields:
+# - name: Unique identifier for the agent (required)
+# - description: Human-readable description (optional but recommended)
+# - instructions: List of instruction strings for the agent (optional)
+# - plugin_type: Type of plugin to load - "prospectfinder" or "xtwitter" (required if using plugins)
+# - mcp_port: Port number for the agent's MCP server (required if using plugins)
+# - model_override: Override the default model for this agent (optional)
+# - team: Name of the Agno Team this agent belongs to (optional)
+#
+# Team Fields (Agno Team concept):
+# - name: Unique identifier for the team (required)
+# - description: Team's purpose and capabilities (optional)
+# - instructions: List of instructions for the team leader (optional)
+# - members: List of agent names that are part of this team (required)
+# - model_override: Override the default model for the team leader (optional)
+#
+# How Teams Work (Agno):
+# - A Team has a "team leader" that delegates tasks to member agents
+# - All members share the same database/session, enabling conversation continuity
+# - Team leader coordinates based on member roles and task requirements
+# - Teams can be nested (teams containing sub-teams)
+
+# Example Configuration (currently empty - customize as needed):
+
+agents: []
+  # Example agent configurations:
+  #
+  # - name: prospectfinder
+  #   description: "Find business prospects in specific sectors and countries"
+  #   plugin_type: prospectfinder
+  #   mcp_port: 8001
+  #   instructions:
+  #     - "You are a business development assistant specialized in finding prospects."
+  #     - "Use the find_prospects tool to search for companies by sector and country."
+  #     - "Always provide detailed company information including contact details."
+  #
+  # - name: xtwitter
+  #   description: "Create and publish X/Twitter posts with AI assistance"
+  #   plugin_type: xtwitter
+  #   mcp_port: 8002
+  #   instructions:
+  #     - "You are a social media manager for X/Twitter."
+  #     - "Always draft posts with create_post first and show them to the user."
+  #     - "NEVER publish without explicit user approval."
+  #     - "When publishing, always set confirm=True in publish_post."
+  #
+  # - name: content-writer
+  #   description: "General purpose content writing assistant"
+  #   instructions:
+  #     - "You are a professional content writer."
+  #     - "Create engaging, well-structured content for various purposes."
+  #     - "Ask clarifying questions when needed."
+
+teams: []
+  # Example team configurations:
+  #
+  # - name: sales-team
+  #   description: "Automated sales team that finds prospects and creates outreach content"
+  #   members:
+  #     - prospectfinder
+  #     - xtwitter
+  #   instructions:
+  #     - "Coordinate between prospectfinder and xtwitter to automate sales outreach."
+  #     - "First use prospectfinder to find relevant companies."
+  #     - "Then use xtwitter to craft personalized outreach posts."
+  #     - "Always get user approval before publishing."
+  #
+  # - name: marketing-team
+  #   description: "Marketing content creation team"
+  #   members:
+  #     - content-writer
+  #     - xtwitter
+  #   instructions:
+  #     - "Coordinate content creation and social media posting."
+  #     - "Ensure brand voice consistency across all content."
+
+# Notes:
+# 1. Empty lists mean no agents/teams will be loaded by default
+# 2. Copy this file to agents.yaml and customize for your needs
+# 3. At least one agent must be defined for the hub to start
+# 4. Teams are optional - agents can work independently
+# 5. MCP servers will only start for agents with plugin_type defined
+# 6. All agents share the same model by default (from .env)
+# 7. Use model_override to assign different models to specific agents/teams
