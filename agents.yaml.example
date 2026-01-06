@@ -10,7 +10,8 @@
 # - name: Unique identifier for the agent (required)
 # - description: Human-readable description (optional but recommended)
 # - instructions: List of instruction strings for the agent (optional)
-# - plugin_type: Type of plugin to load - "prospectfinder" or "xtwitter" (required if using plugins)
+# - plugin_type: Type of plugin to load - "prospectfinder" or "x-twitter" (required if using plugins)
+#               Run 'python -m egile_agent_hub.plugin_loader' to see all available plugins
 # - mcp_port: Port number for the agent's MCP server (required if using plugins)
 # - model_override: Override the default model for this agent (optional)
 # - team: Name of the Agno Team this agent belongs to (optional)
@@ -44,7 +45,7 @@ agents: []
   #
   # - name: xtwitter
   #   description: "Create and publish X/Twitter posts with AI assistance"
-  #   plugin_type: xtwitter
+  #   plugin_type: x-twitter
   #   mcp_port: 8002
   #   instructions:
   #     - "You are a social media manager for X/Twitter."

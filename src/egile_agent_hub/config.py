@@ -58,10 +58,20 @@ class AgentHubConfig:
             # Validate plugin configuration
             if "plugin_type" in agent:
                 plugin_type = agent["plugin_type"]
-                if plugin_type not in ["prospectfinder", "xtwitter"]:
+                
+                # Import here to avoid circular dependency
+                from .plugin_loader import PluginRegistry
+                
+                # Discover available plugins for validation
+                PluginRegistry.discover_plugins()
+                available_plugins = PluginRegistry.list_available_plugins()
+                
+                if plugin_type not in available_plugins:
+                    available_str = ", ".join(f"'{p}'" for p in sorted(available_plugins))
                     raise ConfigError(
                         f"Invalid plugin_type '{plugin_type}' for agent '{name}'. "
-                        f"Must be 'prospectfinder' or 'xtwitter'"
+                        f"Available plugins: {available_str or 'none'}. "
+                        f"Run 'python -m egile_agent_hub.plugin_loader' to see installed plugins."
                     )
                 
                 # For stdio transport, mcp_command is required instead of mcp_port

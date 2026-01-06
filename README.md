@@ -89,7 +89,7 @@ agents:
 
   - name: xtwitter
     description: "Create and publish X/Twitter posts with AI assistance"
-    plugin_type: xtwitter
+    plugin_type: x-twitter
     mcp_port: 8002
     instructions:
       - "You are a social media manager for X/Twitter."

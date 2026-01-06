@@ -1,10 +1,13 @@
 """Plugin loader for Egile Agent Hub.
 
 This module dynamically loads and configures agent plugins based on configuration.
+Automatically discovers installed egile plugins and loads only those that are needed.
 """
 
 from __future__ import annotations
 
+import importlib
+import importlib.metadata
 import logging
 import os
 from typing import Any
@@ -18,62 +21,164 @@ class PluginLoadError(Exception):
 
 
 class PluginRegistry:
-    """Registry of available agent plugins."""
+    """Registry of available agent plugins with dynamic discovery."""
 
-    _plugins: dict[str, type] = {}
-    _initialized: bool = False
+    _available_plugins: dict[str, str] = {}  # Maps plugin_type -> package_name
+    _loaded_plugins: dict[str, type] = {}  # Maps plugin_type -> plugin class
+    _discovered: bool = False
 
     @classmethod
-    def initialize(cls) -> None:
-        """Initialize the plugin registry by importing available plugins."""
-        if cls._initialized:
+    def discover_plugins(cls) -> None:
+        """Discover all installed egile agent plugins."""
+        if cls._discovered:
             return
 
-        logger.info("Initializing plugin registry...")
+        logger.info("Discovering installed egile plugins...")
+        
+        # Packages to exclude (not actual agent plugins)
+        excluded_packages = {"egile-agent-core", "egile_agent_core", "egile-agent-hub", "egile_agent_hub"}
+        
+        # Find all installed packages that match egile agent patterns
+        for dist in importlib.metadata.distributions():
+            package_name = dist.metadata.get("Name", "")
+            
+            # Check if it's an egile agent plugin package
+            if package_name.startswith("egile-agent-") or package_name.startswith("egile_agent_"):
+                # Skip non-plugin packages
+                if package_name in excluded_packages:
+                    continue
+                
+                # Convert package name to plugin type (e.g., "egile-agent-prospectfinder" -> "prospectfinder")
+                plugin_type = package_name.replace("egile-agent-", "").replace("egile_agent_", "")
+                
+                # Keep hyphens for consistency with YAML naming conventions (e.g., "x-twitter")
+                # No normalization needed - preserve the original format
+                
+                # Convert to import name (hyphens to underscores)
+                import_name = package_name.replace("-", "_")
+                
+                cls._available_plugins[plugin_type] = import_name
+                logger.info(f"Discovered plugin: {plugin_type} (package: {package_name})")
+        
+        cls._discovered = True
+        logger.info(f"Plugin discovery complete. Found {len(cls._available_plugins)} plugin(s)")
 
-        # Try to import ProspectFinder plugin
+    @classmethod
+    def list_available_plugins(cls) -> list[str]:
+        """
+        List all available plugin types that can be loaded.
+        
+        Returns:
+            List of plugin type names
+        """
+        if not cls._discovered:
+            cls.discover_plugins()
+        
+        return list(cls._available_plugins.keys())
+
+    @classmethod
+    def _load_plugin_class(cls, plugin_type: str) -> type:
+        """
+        Dynamically load a plugin class by type.
+        
+        Args:
+            plugin_type: Type of plugin to load
+            
+        Returns:
+            Plugin class
+            
+        Raises:
+            PluginLoadError: If plugin cannot be loaded
+        """
+        if plugin_type in cls._loaded_plugins:
+            return cls._loaded_plugins[plugin_type]
+        
+        if not cls._discovered:
+            cls.discover_plugins()
+        
+        if plugin_type not in cls._available_plugins:
+            available = ", ".join(cls._available_plugins.keys()) or "none"
+            raise PluginLoadError(
+                f"Plugin type '{plugin_type}' not found. Available plugins: {available}"
+            )
+        
+        package_name = cls._available_plugins[plugin_type]
+        
         try:
-            from egile_agent_prospectfinder import ProspectFinderPlugin
-            cls._plugins["prospectfinder"] = ProspectFinderPlugin
-            logger.info("Registered ProspectFinderPlugin")
+            # Try to import the plugin class
+            # Convention: plugin classes should be importable from the package root
+            # and named like ProspectFinderPlugin, XTwitterPlugin, etc.
+            module = importlib.import_module(package_name)
+            
+            # Try common naming conventions for plugin classes
+            # Handle both hyphenated (x-twitter) and single-word (prospectfinder) plugin types
+            
+            # Normalize to underscore-separated for consistent word splitting
+            normalized = plugin_type.replace("-", "_")
+            
+            # Try to get the class name from __all__ first
+            plugin_class = None
+            if hasattr(module, "__all__"):
+                for name in module.__all__:
+                    if name.endswith("Plugin"):
+                        plugin_class = getattr(module, name)
+                        break
+            
+            # If not found in __all__, try common naming patterns
+            if plugin_class is None:
+                possible_class_names = [
+                    # Standard CamelCase: ProspectFinderPlugin, XTwitterPlugin
+                    "".join(word.capitalize() for word in normalized.split("_")) + "Plugin",
+                ]
+                
+                # For hyphenated types, also try without separator: XtwitterPlugin
+                if "-" in plugin_type:
+                    possible_class_names.append(
+                        plugin_type.replace("-", "").capitalize() + "Plugin"
+                    )
+                
+                # Add generic fallback
+                possible_class_names.append("Plugin")
+                
+                for class_name in possible_class_names:
+                    if hasattr(module, class_name):
+                        plugin_class = getattr(module, class_name)
+                        break
+            
+            if plugin_class is None:
+                raise PluginLoadError(
+                    f"Could not find plugin class in {package_name}. "
+                    f"Tried: {', '.join(possible_class_names)}"
+                )
+            
+            cls._loaded_plugins[plugin_type] = plugin_class
+            logger.info(f"Loaded plugin class {plugin_class.__name__} from {package_name}")
+            return plugin_class
+            
         except ImportError as e:
-            logger.warning(f"ProspectFinderPlugin not available: {e}")
-
-        # Try to import XTwitter plugin
-        try:
-            from egile_agent_x_twitter import XTwitterPlugin
-            cls._plugins["xtwitter"] = XTwitterPlugin
-            logger.info("Registered XTwitterPlugin")
-        except ImportError as e:
-            logger.warning(f"XTwitterPlugin not available: {e}")
-
-        cls._initialized = True
-        logger.info(f"Plugin registry initialized with {len(cls._plugins)} plugin(s)")
+            raise PluginLoadError(
+                f"Failed to import plugin package '{package_name}': {e}"
+            )
+        except Exception as e:
+            raise PluginLoadError(
+                f"Failed to load plugin class for '{plugin_type}': {e}"
+            )
 
     @classmethod
     def get_plugin_class(cls, plugin_type: str) -> type:
         """
-        Get plugin class by type.
+        Get plugin class by type, loading it dynamically if needed.
 
         Args:
-            plugin_type: Type of plugin ("prospectfinder", "xtwitter")
+            plugin_type: Type of plugin (e.g., "prospectfinder", "xtwitter")
 
         Returns:
             Plugin class
 
         Raises:
-            PluginLoadError: If plugin type is not registered
+            PluginLoadError: If plugin type is not found or cannot be loaded
         """
-        if not cls._initialized:
-            cls.initialize()
-
-        if plugin_type not in cls._plugins:
-            available = ", ".join(cls._plugins.keys()) or "none"
-            raise PluginLoadError(
-                f"Plugin type '{plugin_type}' not found. Available: {available}"
-            )
-
-        return cls._plugins[plugin_type]
+        return cls._load_plugin_class(plugin_type)
 
     @classmethod
     def create_plugin(cls, plugin_type: str, config: dict[str, Any]) -> Any:
@@ -132,7 +237,7 @@ class PluginRegistry:
             if not plugin_config["mcp_port"]:
                 plugin_config["mcp_port"] = int(os.getenv("PROSPECTFINDER_MCP_PORT", "8001"))
 
-        elif plugin_type == "xtwitter":
+        elif plugin_type in ("xtwitter", "x-twitter", "x_twitter"):
             if not plugin_config["mcp_command"]:
                 plugin_config["mcp_command"] = "python -m egile_mcp_x_post_creator.server"
             if not plugin_config["mcp_port"]:
@@ -144,6 +249,7 @@ class PluginRegistry:
 def load_plugins_for_agents(agents_config: list[dict[str, Any]]) -> dict[str, Any]:
     """
     Load plugins for all agents in the configuration.
+    Only loads plugins that are actually referenced in the configuration.
 
     Args:
         agents_config: List of agent configuration dictionaries
@@ -154,7 +260,10 @@ def load_plugins_for_agents(agents_config: list[dict[str, Any]]) -> dict[str, An
     Raises:
         PluginLoadError: If any plugin fails to load
     """
-    PluginRegistry.initialize()
+    # Discover available plugins first (this is fast and only happens once)
+    PluginRegistry.discover_plugins()
+    available = PluginRegistry.list_available_plugins()
+    logger.info(f"Available plugins: {', '.join(available) if available else 'none'}")
     
     plugins = {}
     for agent_config in agents_config:
@@ -166,6 +275,7 @@ def load_plugins_for_agents(agents_config: list[dict[str, Any]]) -> dict[str, An
             continue
 
         try:
+            # Plugin class is loaded lazily only when needed
             plugin = PluginRegistry.create_plugin(plugin_type, agent_config)
             plugins[agent_name] = plugin
             logger.info(f"Loaded {plugin_type} plugin for agent '{agent_name}'")
@@ -174,3 +284,32 @@ def load_plugins_for_agents(agents_config: list[dict[str, Any]]) -> dict[str, An
             raise
 
     return plugins
+
+
+def print_available_plugins() -> None:
+    """
+    Utility function to print all available plugins.
+    Useful for debugging and configuration.
+    """
+    PluginRegistry.discover_plugins()
+    available = PluginRegistry.list_available_plugins()
+    
+    if not available:
+        print("No egile plugins found.")
+        print("\nTo install plugins, run:")
+        print("  pip install egile-agent-prospectfinder")
+        print("  pip install egile-agent-x-twitter")
+        return
+    
+    print(f"Found {len(available)} egile plugin(s):\n")
+    for plugin_type in sorted(available):
+        package_name = PluginRegistry._available_plugins[plugin_type]
+        print(f"  - {plugin_type:20s} (package: {package_name})")
+    
+    print("\nUse these plugin types in your agents.yaml configuration.")
+
+
+if __name__ == "__main__":
+    # Allow running as: python -m egile_agent_hub.plugin_loader
+    logging.basicConfig(level=logging.INFO)
+    print_available_plugins()
