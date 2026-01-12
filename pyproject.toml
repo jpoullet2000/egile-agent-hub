@@ -7,9 +7,6 @@ requires-python = ">=3.10"
 license = {text = "MIT"}
 
 dependencies = [
-    "egile-agent-core @ file:///C:/Users/jeanb/OneDrive/Documents/projects/egile-agent-core",
-    "egile-agent-prospectfinder @ file:///C:/Users/jeanb/OneDrive/Documents/projects/egile-agent-prospectfinder",
-    "egile-agent-x-twitter @ file:///C:/Users/jeanb/OneDrive/Documents/projects/egile-agent-x-twitter",
     "agno>=2.3.0",
     "httpx>=0.27.0",
     "uvicorn[standard]>=0.24.0",
@@ -22,11 +19,7 @@ all = [
     "egile-agent-core @ file:///C:/Users/jeanb/OneDrive/Documents/projects/egile-agent-core",
     "egile-agent-prospectfinder @ file:///C:/Users/jeanb/OneDrive/Documents/projects/egile-agent-prospectfinder",
     "egile-agent-x-twitter @ file:///C:/Users/jeanb/OneDrive/Documents/projects/egile-agent-x-twitter",
-    "agno>=2.3.0",
-    "httpx>=0.27.0",
-    "uvicorn[standard]>=0.24.0",
-    "python-dotenv>=1.0.0",
-    "pyyaml>=6.0",
+    "egile-agent-slidedeck @ file:///C:/Users/jeanb/OneDrive/Documents/projects/egile-agent-slidedeck",
 ]
 dev = [
     "pytest>=8.0.0",

@@ -57,3 +57,11 @@ htmlcov/
 
 # Distribution
 *.whl
+
+# Output files
+presentations/
+
+# Temporary files
+*.tmp
+*.temp
+tmp/

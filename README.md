@@ -15,7 +15,7 @@ Egile Agent Hub eliminates the need for multiple browser tabs and manual copy-pa
 ## Features
 
 ✅ **Multi-Agent Coordination**
-- Run ProspectFinder, XTwitter, and custom agents simultaneously
+- Run ProspectFinder, XTwitter, SlideDeck, and custom agents simultaneously
 - Switch between agents without changing browser tabs
 - Shared database for persistent conversation history
 
@@ -47,6 +47,7 @@ This installs all dependencies:
 - egile-agent-core
 - egile-mcp-prospectfinder + egile-agent-prospectfinder
 - egile-mcp-x-post-creator + egile-agent-x-twitter
+- egile-mcp-slidedeck + egile-agent-slidedeck
 - PyYAML, Agno, and other requirements
 
 ### 2. Configuration
@@ -70,6 +71,10 @@ X_API_KEY=your_x_api_key_here
 X_API_SECRET=your_x_api_secret_here
 X_ACCESS_TOKEN=your_x_access_token_here
 X_ACCESS_TOKEN_SECRET=your_x_access_token_secret_here
+
+# Image Generation API (for SlideDeck - optional)
+REPLICATE_API_TOKEN=your_replicate_token_here
+STABILITY_API_KEY=your_stability_key_here
 ```
 
 #### b) Define Your Agents
@@ -97,6 +102,16 @@ agents:
       - "NEVER publish without explicit user approval."
       - "When publishing, always set confirm=True in publish_post."
 
+  - name: slidedeck
+    description: "Create professional PowerPoint presentations"
+    plugin_type: slidedeck
+    mcp_port: 8003
+    instructions:
+      - "You are a professional presentation designer."
+      - "WORKFLOW: start_deck() → add_slide() → export_deck()"
+      - "NEVER skip starting a deck - always call start_deck() first."
+      - "Tailor content to audience: ceo (business), cto (technical), engineer (implementation)."
+
   - name: content-writer
     description: "General purpose content writing assistant"
     instructions:
@@ -114,6 +129,17 @@ teams:
       - "First use prospectfinder to find relevant companies."
       - "Then use xtwitter to craft personalized outreach posts."
       - "Always get user approval before publishing."
+  
+  - name: pitch-team
+    description: "Create sales pitches with presentations"
+    members:
+      - prospectfinder
+      - slidedeck
+    instructions:
+      - "Coordinate prospect research and presentation creation."
+      - "Use prospectfinder to research the target company."
+      - "Use slidedeck to create a tailored pitch presentation."
+      - "Always confirm audience and key points before creating slides."
 ```
 
 ### 3. Run the Hub
@@ -124,7 +150,7 @@ teams:
 ```
 
 This will:
-1. Start MCP servers for ProspectFinder (port 8001) and XTwitter (port 8002)
+1. Start MCP servers for ProspectFinder (port 8001), XTwitter (port 8002), and SlideDeck (port 8003)
 2. Create all configured agents and teams
 3. Start AgentOS API on port 8000
 
@@ -147,7 +173,7 @@ Then open http://localhost:3000 in your browser. You'll see all your agents and 
 agents:
   - name: agent-name              # Required: Unique identifier
     description: "Agent purpose"  # Optional: Human-readable description
-    plugin_type: prospectfinder   # Optional: "prospectfinder" or "xtwitter"
+    plugin_type: prospectfinder   # Optional: "prospectfinder", "xtwitter", or "slidedeck"
     mcp_port: 8001               # Required if plugin_type is set
     mcp_host: localhost          # Optional: Default "localhost"
     instructions:                # Optional: List of instruction strings
@@ -262,6 +288,9 @@ agents:
   - name: xtwitter
     plugin_type: xtwitter
     mcp_port: 8002
+  - name: slidedeck
+    plugin_type: slidedeck
+    mcp_port: 8003
   - name: content-writer
     # No plugin - general purpose
   - name: researcher
@@ -272,12 +301,16 @@ teams:
     members: [prospectfinder, xtwitter]
   - name: content-team
     members: [content-writer, xtwitter]
+  - name: pitch-team
+    members: [prospectfinder, slidedeck]
 ```
 
 Users can select:
 - `sales-team` - For automated sales workflows
 - `content-team` - For content creation + social posting
+- `pitch-team` - For prospect research + pitch decks
 - `prospectfinder` - For prospect search only
+- `slidedeck` - For presentation creation only
 - `researcher` - For general research
 
 ## Ports
@@ -287,6 +320,7 @@ Users can select:
 | AgentOS API | 8000 |
 | ProspectFinder MCP | 8001 |
 | XTwitter MCP | 8002 |
+| SlideDeck MCP | 8003 |
 | Agent UI | 3000 (separate) |
 
 Configure in `.env`:
@@ -295,6 +329,7 @@ Configure in `.env`:
 AGENTOS_PORT=8000
 PROSPECTFINDER_MCP_PORT=8001
 XTWITTER_MCP_PORT=8002
+SLIDEDECK_MCP_PORT=8003
 ```
 
 ## Environment Variables Reference
@@ -313,12 +348,15 @@ XTWITTER_MCP_PORT=8002
 | `DB_FILE` | No | Default: `agent_hub.db` |
 | `PROSPECTFINDER_MCP_PORT` | If using ProspectFinder | Default: `8001` |
 | `XTWITTER_MCP_PORT` | If using XTwitter | Default: `8002` |
+| `SLIDEDECK_MCP_PORT` | If using SlideDeck | Default: `8003` |
 | `GOOGLE_API_KEY` | If using ProspectFinder | Google API key |
 | `GOOGLE_CSE_ID` | If using ProspectFinder | Google Custom Search Engine ID |
 | `X_API_KEY` | If using XTwitter | Twitter API key |
 | `X_API_SECRET` | If using XTwitter | Twitter API secret |
 | `X_ACCESS_TOKEN` | If using XTwitter | Twitter access token |
 | `X_ACCESS_TOKEN_SECRET` | If using XTwitter | Twitter access token secret |
+| `REPLICATE_API_TOKEN` | If using SlideDeck images | Replicate API for AI image generation |
+| `STABILITY_API_KEY` | If using SlideDeck images | Stability AI API key (alternative) |
 
 ## Commands
 
