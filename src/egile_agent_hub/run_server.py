@@ -135,13 +135,8 @@ async def start_all_mcp_servers(hub_config) -> list[subprocess.Popen]:
 
     logger.info(f"Starting {len(sse_servers)} SSE MCP server(s)...")
 
-    # Map plugin types to module names
-    module_map = {
-        "prospectfinder": "egile_mcp_prospectfinder.server",
-        "xtwitter": "egile_mcp_x_post_creator.server",
-        "slidedeck": "egile_mcp_slidedeck.server",
-        "investment": "egile_mcp_investment.server",
-    }
+    # Import PluginRegistry to auto-discover MCP server modules
+    from egile_agent_hub.plugin_loader import PluginRegistry
 
     # Start each unique MCP server
     started_ports = set()
@@ -155,9 +150,13 @@ async def start_all_mcp_servers(hub_config) -> list[subprocess.Popen]:
             logger.info(f"MCP server for {agent_name} already started on port {port}")
             continue
 
-        module_name = module_map.get(plugin_type)
+        # Auto-discover MCP server module from plugin
+        module_name = PluginRegistry.get_mcp_server_module(plugin_type)
         if not module_name:
-            logger.warning(f"Unknown plugin type '{plugin_type}' for agent '{agent_name}'")
+            logger.warning(
+                f"Plugin '{plugin_type}' for agent '{agent_name}' does not provide an MCP server module. "
+                f"Make sure the plugin class has a 'mcp_server_module' property."
+            )
             continue
 
         process = await start_mcp_server(module_name, port, host)

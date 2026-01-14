@@ -77,6 +77,42 @@ class PluginRegistry:
         return list(cls._available_plugins.keys())
 
     @classmethod
+    def get_mcp_server_module(cls, plugin_type: str) -> str | None:
+        """
+        Get the MCP server module name for a plugin type.
+        
+        Args:
+            plugin_type: Type of plugin
+            
+        Returns:
+            MCP server module path or None if not available
+        """
+        try:
+            plugin_class = cls._load_plugin_class(plugin_type)
+            # Create a temporary instance to check for mcp_server_module property
+            # Most plugins have __init__ that can be called without args or with defaults
+            if hasattr(plugin_class, 'mcp_server_module'):
+                # Try to access as class property first
+                try:
+                    module = plugin_class.mcp_server_module
+                    if module and not callable(module):
+                        return module
+                except (AttributeError, TypeError):
+                    pass
+                
+                # Try creating instance with default args
+                try:
+                    temp_instance = plugin_class()
+                    return temp_instance.mcp_server_module
+                except (TypeError, AttributeError):
+                    pass
+            
+            return None
+        except Exception as e:
+            logger.debug(f"Could not get MCP server module for {plugin_type}: {e}")
+            return None
+
+    @classmethod
     def _load_plugin_class(cls, plugin_type: str) -> type:
         """
         Dynamically load a plugin class by type.
