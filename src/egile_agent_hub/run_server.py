@@ -140,6 +140,7 @@ async def start_all_mcp_servers(hub_config) -> list[subprocess.Popen]:
         "prospectfinder": "egile_mcp_prospectfinder.server",
         "xtwitter": "egile_mcp_x_post_creator.server",
         "slidedeck": "egile_mcp_slidedeck.server",
+        "investment": "egile_mcp_investment.server",
     }
 
     # Start each unique MCP server
