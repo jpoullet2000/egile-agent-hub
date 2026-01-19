@@ -15,6 +15,9 @@
 # - mcp_port: Port number for the agent's MCP server (required if using plugins)
 # - model_override: Override the default model for this agent (optional)
 # - team: Name of the Agno Team this agent belongs to (optional)
+# - memory: Memory/conversation history settings (optional)
+#     - enabled: Whether to load conversation history (default: true)
+#     - num_responses: Number of previous messages to include in context (default: 20)
 #
 # Team Fields (Agno Team concept):
 # - name: Unique identifier for the team (required)
@@ -22,6 +25,7 @@
 # - instructions: List of instructions for the team leader (optional)
 # - members: List of agent names that are part of this team (required)
 # - model_override: Override the default model for the team leader (optional)
+# - memory: Memory/conversation history settings (optional) - same as agent memory
 #
 # How Teams Work (Agno):
 # - A Team has a "team leader" that delegates tasks to member agents
@@ -42,6 +46,9 @@ agents: []
   #     - "You are a business development assistant specialized in finding prospects."
   #     - "Use the find_prospects tool to search for companies by sector and country."
   #     - "Always provide detailed company information including contact details."
+  #   memory:
+  #     enabled: true
+  #     num_responses: 20
   #
   # - name: xtwitter
   #   description: "Create and publish X/Twitter posts with AI assistance"

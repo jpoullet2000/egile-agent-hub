@@ -247,7 +247,7 @@ async def create_multi_agent_os(hub_config, plugins: dict[str, Any]) -> AgentOS:
         agno_model = AgnoModelAdapter(model, tools=tools if tools else None)
         logger.info(f"Successfully created AgnoModelAdapter with {len(tools) if tools else 0} tools")
 
-        # Create Agno agent
+        # Create Agno agent with memory enabled
         agent = AgnoAgent(
             name=agent_name,
             model=agno_model,
@@ -257,9 +257,14 @@ async def create_multi_agent_os(hub_config, plugins: dict[str, Any]) -> AgentOS:
             tools=tools if tools else None,
             markdown=agent_config.get("markdown", True),
             debug_mode=agent_config.get("debug_mode", False),
+            add_history_to_context=True,    # Load conversation history from database
+            num_history_messages=20,        # Include last 20 messages in context
+            max_tool_calls_from_history=0,  # Don't replay tool calls from history
+            read_tool_call_history=False,   # Don't read tool calls from history at all
+            tool_call_limit=agent_config.get("tool_call_limit"),  # Optional limit on tool calls per turn
         )
         agno_agents[agent_name] = agent
-        logger.info(f"  Created agent '{agent_name}'")
+        logger.info(f"  Created agent '{agent_name}' with memory enabled (history: 20 messages)")
     
     # Initialize all plugins by calling on_agent_start
     # This is critical for plugins that need to connect to MCP servers
@@ -316,7 +321,7 @@ async def create_multi_agent_os(hub_config, plugins: dict[str, Any]) -> AgentOS:
                 logger.warning(f"AgnoModelAdapter doesn't support tools parameter - using older version")
                 team_agno_model = AgnoModelAdapter(team_model)
 
-            # Create Agno team
+            # Create Agno team with memory enabled
             team = AgnoTeam(
                 name=team_name,
                 members=members,
@@ -324,9 +329,12 @@ async def create_multi_agent_os(hub_config, plugins: dict[str, Any]) -> AgentOS:
                 db=db,
                 instructions=team_config.get("instructions", []),
                 description=team_config.get("description", ""),
+                add_history_to_context=True,    # Load conversation history from database
+                num_history_messages=20,        # Include last 20 messages in context
+                max_tool_calls_from_history=0,  # Don't replay tool calls from history
             )
             agno_teams.append(team)
-            logger.info(f"  Created team '{team_name}' with {len(members)} member(s)")
+            logger.info(f"  Created team '{team_name}' with {len(members)} member(s) and memory enabled (history: 20 messages)")
 
     # AgentOS requires Agent instances in agents parameter
     # And Team instances in teams parameter (separate!)
