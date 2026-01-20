@@ -321,7 +321,7 @@ async def create_multi_agent_os(hub_config, plugins: dict[str, Any]) -> AgentOS:
                 logger.warning(f"AgnoModelAdapter doesn't support tools parameter - using older version")
                 team_agno_model = AgnoModelAdapter(team_model)
 
-            # Create Agno team with memory enabled
+            # Create Agno team with memory enabled and proper collaboration mode
             team = AgnoTeam(
                 name=team_name,
                 members=members,
@@ -332,6 +332,15 @@ async def create_multi_agent_os(hub_config, plugins: dict[str, Any]) -> AgentOS:
                 add_history_to_context=True,    # Load conversation history from database
                 num_history_messages=20,        # Include last 20 messages in context
                 max_tool_calls_from_history=0,  # Don't replay tool calls from history
+                # Collaboration mode settings
+                determine_input_for_members=True,      # Team leader decides what input to give each member
+                share_member_interactions=True,        # Share member interactions with team leader
+                add_member_tools_to_context=False,     # DON'T expose tools - leader should delegate only
+                get_member_information_tool=True,      # Team leader can get info about member capabilities
+                show_members_responses=True,           # Show individual member responses in debug
+                store_member_responses=True,           # Store member responses in database
+                add_team_history_to_members=True,      # Members get team conversation history
+                num_team_history_runs=3,               # Include last 3 team runs in member context
             )
             agno_teams.append(team)
             logger.info(f"  Created team '{team_name}' with {len(members)} member(s) and memory enabled (history: 20 messages)")
