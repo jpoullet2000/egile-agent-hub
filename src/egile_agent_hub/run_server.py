@@ -10,6 +10,7 @@ This module orchestrates:
 from __future__ import annotations
 
 import asyncio
+from datetime import datetime
 import logging
 import os
 import signal
@@ -213,6 +214,13 @@ async def create_multi_agent_os(hub_config, plugins: dict[str, Any]) -> AgentOS:
     db = AsyncSqliteDb(db_file=db_file)
     logger.info(f"Using database: {db_file}")
 
+    # Get current date to inject into agent context
+    current_date = datetime.now().strftime("%B %d, %Y")
+    date_instruction = f"Today's date is {current_date}. Use this date for any time-sensitive operations or when users ask about 'today', 'this week', 'this month', etc."
+    
+    # Markdown formatting instruction to ensure proper formatting from the start
+    markdown_instruction = "CRITICAL: Always format your responses using proper markdown syntax from the very beginning. Use headers (# ## ###), tables, lists, code blocks, and emphasis where appropriate. Never send plain text first and then reformatted markdown - format correctly on the first attempt."
+    
     # Create agents
     agno_agents = {}
     for agent_config in hub_config.agents:
@@ -247,12 +255,15 @@ async def create_multi_agent_os(hub_config, plugins: dict[str, Any]) -> AgentOS:
         agno_model = AgnoModelAdapter(model, tools=tools if tools else None)
         logger.info(f"Successfully created AgnoModelAdapter with {len(tools) if tools else 0} tools")
 
+        # Add current date and markdown formatting instructions
+        agent_instructions = [date_instruction, markdown_instruction] + agent_config.get("instructions", [])
+
         # Create Agno agent with memory enabled
         agent = AgnoAgent(
             name=agent_name,
             model=agno_model,
             db=db,
-            instructions=agent_config.get("instructions", []),
+            instructions=agent_instructions,
             description=agent_config.get("description", ""),
             tools=tools if tools else None,
             markdown=agent_config.get("markdown", True),
@@ -321,13 +332,16 @@ async def create_multi_agent_os(hub_config, plugins: dict[str, Any]) -> AgentOS:
                 logger.warning(f"AgnoModelAdapter doesn't support tools parameter - using older version")
                 team_agno_model = AgnoModelAdapter(team_model)
 
+            # Add current date and markdown formatting instructions to team
+            team_instructions = [date_instruction, markdown_instruction] + team_config.get("instructions", [])
+
             # Create Agno team with memory enabled and proper collaboration mode
             team = AgnoTeam(
                 name=team_name,
                 members=members,
                 model=team_agno_model,
                 db=db,
-                instructions=team_config.get("instructions", []),
+                instructions=team_instructions,
                 description=team_config.get("description", ""),
                 add_history_to_context=True,    # Load conversation history from database
                 num_history_messages=20,        # Include last 20 messages in context
