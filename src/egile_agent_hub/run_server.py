@@ -351,7 +351,7 @@ async def create_multi_agent_os(hub_config, plugins: dict[str, Any]) -> AgentOS:
                 share_member_interactions=True,        # Share member interactions with team leader
                 add_member_tools_to_context=False,     # DON'T expose tools - leader should delegate only
                 get_member_information_tool=True,      # Team leader can get info about member capabilities
-                show_members_responses=True,           # Show individual member responses in debug
+                show_members_responses=False,          # Don't show member responses in UI (prevents duplicate display)
                 store_member_responses=True,           # Store member responses in database
                 add_team_history_to_members=True,      # Members get team conversation history
                 num_team_history_runs=3,               # Include last 3 team runs in member context
