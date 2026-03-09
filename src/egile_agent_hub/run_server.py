@@ -333,7 +333,19 @@ async def create_multi_agent_os(hub_config, plugins: dict[str, Any]) -> AgentOS:
                 team_agno_model = AgnoModelAdapter(team_model)
 
             # Add current date and markdown formatting instructions to team
-            team_instructions = [date_instruction, markdown_instruction] + team_config.get("instructions", [])
+            # Also add efficient delegation instructions for team leader
+            team_delegation_instruction = (
+                "EFFICIENT DELEGATION: You are a team leader coordinating member agents. "
+                "WORKFLOW: (1) Plan complete workflow first, (2) Gather ALL data from members, (3) Then delegate to reporter ONCE with complete content. "
+                "Delegate tasks to the RIGHT member agent ONCE. Do NOT call the same member multiple times for the same task. "
+                "Do NOT duplicate work - if one member has already produced a result (like generating a PDF), use it directly. "
+                "For report generation: Collect ALL information from gardener/data agents first, THEN delegate to reporter ONCE with the complete markdown content. "
+                "After delegating to all necessary members, synthesize their results into a final response. "
+                "CRITICAL: Each tool or member should be used ONCE per user request unless explicitly needed. "
+                "If you see an error like 'Tool X has been called N times in a row', STOP immediately and provide your answer with the results you have. "
+                "NEVER retry the same delegation or tool call more than twice - if it worked once, the task is complete."
+            )
+            team_instructions = [date_instruction, markdown_instruction, team_delegation_instruction] + team_config.get("instructions", [])
 
             # Create Agno team with memory enabled and proper collaboration mode
             team = AgnoTeam(
@@ -355,6 +367,7 @@ async def create_multi_agent_os(hub_config, plugins: dict[str, Any]) -> AgentOS:
                 store_member_responses=True,           # Store member responses in database
                 add_team_history_to_members=True,      # Members get team conversation history
                 num_team_history_runs=3,               # Include last 3 team runs in member context
+                tool_call_limit=team_config.get("tool_call_limit", 20),  # Limit delegation calls to prevent inefficiency
             )
             agno_teams.append(team)
             logger.info(f"  Created team '{team_name}' with {len(members)} member(s) and memory enabled (history: 20 messages)")
